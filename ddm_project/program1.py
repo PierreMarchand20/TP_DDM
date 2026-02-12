@@ -59,3 +59,33 @@ for t in skmesh.t.T: # transpose to iterate over columns
 
 plt.show()
 basis = skfem.Basis(skmesh, skfem.ElementTriP1())
+
+# Define bilinear and linear form
+@skfem.BilinearForm
+def a(u, v, _):
+    return dot(grad(u), grad(v))
+
+@skfem.LinearForm
+def l(v, w):
+    x, y = w.x  # global coordinates
+    f = np.sin(np.pi * x) * np.sin(np.pi * y)
+    return f * v
+
+# Assemble matrices and essential boundary conditions
+A = a.assemble(basis)
+b = l.assemble(basis)
+D = basis.get_dofs()
+
+# Resolve system
+x = skfem.solve(*skfem.condense(A, b, D=D))
+
+@skfem.Functional
+def error(w):
+    x, y = w.x
+    uh = w['uh']
+    u = np.sin(np.pi * x) * np.sin(np.pi * y) / (2. * np.pi ** 2)
+    return (uh - u) ** 2
+
+err=error.assemble(basis, uh=basis.interpolate(x))
+print(f"Absolute error = {err}")
+plt.show()
