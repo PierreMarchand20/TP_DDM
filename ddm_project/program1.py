@@ -1,4 +1,6 @@
 import gmsh
+import skfem 
+from skfem.helpers import dot, grad  
 
 from matplotlib import pyplot as plt
 
@@ -35,4 +37,24 @@ ax1.set_title(f"{dim}D Mesh from GMSH")
 ax1.axis("equal")
 
 plot_mesh(ax1, mesh)
+
+
+nodes = mesh.nodes.T
+elements = mesh.elements.T
+
+
+skmesh = skfem.MeshTri(nodes,elements)
+
+ax2 = fig.add_subplot(122)
+ax2.set_title(f"{dim}D Mesh from scikit-fem")
+ax2.axis("equal")
+
+ax2.plot(skmesh.p[0], skmesh.p[1], 'ok')
+for t in skmesh.t.T: # transpose to iterate over columns
+    ax2.plot(skmesh.p[0,[t[0],t[1]]], skmesh.p[1,[t[0],t[1]]], 'k')  # from vertex 0 to 1
+    ax2.plot(skmesh.p[0,[t[1],t[2]]], skmesh.p[1,[t[1],t[2]]], 'k')  # from vertex 1 to 2
+    ax2.plot(skmesh.p[0,[t[2],t[0]]], skmesh.p[1,[t[2],t[0]]], 'k')  # from vertex 2 back to 0
+
+
 plt.show()
+basis = skfem.Basis(skmesh, skfem.ElementTriP1())
