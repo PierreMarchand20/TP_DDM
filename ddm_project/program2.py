@@ -32,16 +32,45 @@ submeshes, neighbors, intersections, partition_of_unity, _ = add_overlap(
 
 
 # matplotlib visualization
-fig = plt.figure()
-ax1 = fig.add_subplot(121)
-ax1.set_title(f"{dim}D Mesh from GMSH")
-ax1.axis("equal")
-ax1.set_xlim(0,1)
-plot_mesh(ax1, submeshes[0])
-ax2 = fig.add_subplot(122)
-ax2.set_title(f"{dim}D Mesh from GMSH")
-ax2.axis("equal")
-ax2.set_xlim(0,1)
-plot_mesh(ax2, submeshes[1])
-plt.show()
 
+sk_submeshes = []
+Vhs = []
+for i in range(0,nb_partition):
+    nodes = submeshes[i].nodes.T
+    elements = submeshes[i].elements.T
+
+    nodes =nodes[0,:]
+    skmesh=skfem.MeshLine(nodes,elements)
+    sk_submeshes.append(skmesh)
+    Vhs.append(skfem.Basis(skmesh, skfem.ElementLineP1()))
+
+# Define bilinear and linear form
+@skfem.BilinearForm
+def a(u, v, _):
+    return dot(grad(u), grad(v))
+
+@skfem.LinearForm
+def l(v, _):
+    f = 1
+    return f * v
+
+# Assemble local problem
+As= []
+bs=[]
+Ds=[]
+xs = []
+
+for i in range(0,nb_partition):
+    A = a.assemble(Vhs[i])
+    b = l.assemble(Vhs[i])
+    As.append(A)
+    bs.append(b)
+    D = Vhs[i].get_dofs()
+    Ds.append(D)
+    x = skfem.solve(*skfem.condense(A, b, D=D))
+    xs.append(x)
+
+for i in range(0,nb_partition):
+    boundary_elem = submeshes[i].physical_group_elements[('interface', 0, None)]
+    neigh = neighbors[i]
+    inter = intersections[i]
