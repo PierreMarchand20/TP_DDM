@@ -2,7 +2,7 @@ import gmsh
 import skfem
 import numpy as np 
 from skfem.helpers import dot, grad  
-
+from skfem.visuals.matplotlib import plot
 from matplotlib import pyplot as plt
 
 
@@ -88,4 +88,12 @@ def error(w):
 
 err=error.assemble(basis, uh=basis.interpolate(x))
 print(f"Absolute error = {err}")
+plt.show()
+
+fig2 = plt.figure()
+ax3 = fig2.add_subplot()
+ax3.set_title(f"Finite element solution")
+ax3.axis("equal")
+plot(basis, x,ax=ax3)
+# ax3.show()
 plt.show()
