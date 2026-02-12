@@ -1,0 +1,38 @@
+import gmsh
+
+from matplotlib import pyplot as plt
+
+
+from ddm_playground.mesh.gmsh import GmshContextManager, GmshOptions
+from ddm_playground.mesh.plot import plot_mesh, plot_submesh
+
+dim: int = 2
+nb_partition: int = 2
+gmsh_options = GmshOptions(mesh_name="mesh")
+
+with GmshContextManager(gmsh_options) as mesh_generator:
+    
+    lc = 0.1  # characteristic length (mesh size)
+
+    p1 = gmsh.model.geo.addPoint(0, 0, 0, lc)
+    p2 = gmsh.model.geo.addPoint(1, 0, 0, lc)
+    p3 = gmsh.model.geo.addPoint(1, 1, 0, lc)
+    p4 = gmsh.model.geo.addPoint(0, 1, 0, lc)
+    
+    l1 = gmsh.model.geo.addLine(p1, p2)
+    l2 = gmsh.model.geo.addLine(p2, p3)
+    l3 = gmsh.model.geo.addLine(p3, p4)
+    l4 = gmsh.model.geo.addLine(p4, p1)
+    cl = gmsh.model.geo.addCurveLoop([l1, l2, l3, l4])
+    gmsh.model.geo.addPlaneSurface([cl])
+    gmsh.model.geo.synchronize()
+    mesh = mesh_generator.generate(dim, nb_partition)
+
+# matplotlib visualization
+fig = plt.figure()
+ax1 = fig.add_subplot(121)
+ax1.set_title(f"{dim}D Mesh from GMSH")
+ax1.axis("equal")
+
+plot_mesh(ax1, mesh)
+plt.show()
