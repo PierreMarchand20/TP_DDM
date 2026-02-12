@@ -1,5 +1,6 @@
 import gmsh
-import skfem 
+import skfem
+import numpy as np 
 from skfem.helpers import dot, grad  
 
 from matplotlib import pyplot as plt
@@ -42,7 +43,7 @@ plot_mesh(ax1, mesh)
 nodes = mesh.nodes.T
 elements = mesh.elements.T
 
-
+nodes =nodes[0:2,:]
 skmesh = skfem.MeshTri(nodes,elements)
 
 ax2 = fig.add_subplot(122)
