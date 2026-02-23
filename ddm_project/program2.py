@@ -65,7 +65,8 @@ for i in range(0,nb_partition):
     b = l.assemble(Vhs[i])
     As.append(A)
     bs.append(b)
-    D = Vhs[i].get_dofs()
+    boundary_elem = submeshes[i].physical_group_elements[('interface', 0, None)]
+    D = Vhs[i].get_dofs(boundary_elem)
     Ds.append(D)
     x = skfem.solve(*skfem.condense(A, b, D=D))
     xs.append(x)
