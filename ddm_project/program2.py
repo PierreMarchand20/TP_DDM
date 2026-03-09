@@ -50,12 +50,18 @@ for i in range(0,nb_partition):
 
 # Idendify mapping from interfaces
 exchange_indices = [] # exchange_indices[i][p] gives the neighbour index and local index of same node for each boundary node
-boundary_nodes =[] # local indices of boundary nodes
+interface_nodes =[] # local indices of boundary nodes
+boundary_nodes = [] # local indices for exterior boundary
+print( submeshes[1].physical_group_elements)
+
 for i in range(0,nb_partition):
     print(f"i={i}")
-    boundary_elem = submeshes[i].physical_group_elements[('interface', 0, None)]
-    nodes_on_interface = np.unique(np.concatenate(boundary_elem))
-    boundary_nodes.append(nodes_on_interface)
+    interface_elem = submeshes[i].physical_group_elements[('interface', 0, None)]
+    nodes_on_interface = np.unique(np.concatenate(interface_elem))
+    exterior_boundary_elem = submeshes[i].physical_group_elements[(f"boundary_{i}", 0, 1+i)]
+    nodes_on_exterior_boundary = np.unique(np.concatenate(exterior_boundary_elem))
+    interface_nodes.append(nodes_on_interface)
+    boundary_nodes.append(nodes_on_exterior_boundary)
     neigh = neighbors[i]
     inters = intersections[i]
     print(f"neigh = {neigh}")
@@ -71,7 +77,7 @@ for i in range(0,nb_partition):
         args[n] = temp
         exchange_indices.append(args)
 
-print(f"boundary_nodes={boundary_nodes}")
+print(f"interface_nodes={interface_nodes}")
 print(f"exchange_indices={exchange_indices}")
 # print(neighbors)
         
@@ -97,8 +103,7 @@ for i in range(0,nb_partition):
     b = l.assemble(Vhs[i])
     As.append(A)
     bs.append(b)
-    boundary_elem = submeshes[i].physical_group_elements[('interface', 0, None)]
-    nodes_on_interface = np.unique(np.concatenate(boundary_elem))
+    nodes_on_interface = interface_nodes[i]
     initial_interface_conditions.append(np.zeros(A.shape[0]))
     initial_interface_conditions[i][nodes_on_interface] = 0.5
     xs.append([])
@@ -106,12 +111,16 @@ for i in range(0,nb_partition):
 print(f"Initial interface conditions = {initial_interface_conditions}")
 
 interface_conditions = initial_interface_conditions
-for iter in range(0,10):
+xs_init = []
+for iter in range(0,100):
     # Resolve the local problems    
     for i in range(0,nb_partition):
-        Linear_system = skfem.enforce(A, b,D=nodes_on_interface,x=interface_conditions[i])
+        local_boundary_nodes = np.hstack((interface_nodes[i],boundary_nodes[i]))
+        Linear_system = skfem.enforce(As[i], bs[i],D=local_boundary_nodes,x=interface_conditions[i])
         x = skfem.solve(*Linear_system)
         xs[i] = x
+        if iter == 0:
+            xs_init.append(x) 
   
     for i in range(0,nb_partition):
         interface_conditions[i] = 0*interface_conditions[i]
@@ -123,12 +132,21 @@ for iter in range(0,10):
 
 print(f"New interface conditions = {interface_conditions}")
 
-# fig2 = plt.figure()
-# ax3 = fig2.add_subplot()
-# ax3.set_title(f"Finite element solution")
-# ax3.axis("equal")
-# for i in range(0,nb_partition):
-#     plot(Vhs[i], xs[i],ax=ax3)
-# # ax3.show()
-# plt.show()
+fig1 = plt.figure()
+ax = fig1.add_subplot()
+ax.set_title(f"Finite element solution Initialisation")
+ax.axis("equal")
+for i in range(0,nb_partition):
+    plot(Vhs[i], xs_init[i],ax=ax)
+# ax3.show()
+plt.show()
 
+
+fig2 = plt.figure()
+ax2 = fig2.add_subplot()
+ax2.set_title(f"Finite element solution Final")
+ax2.axis("equal")
+for i in range(0,nb_partition):
+    plot(Vhs[i], xs[i],ax=ax2)
+# ax3.show()
+plt.show()
