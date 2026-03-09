@@ -11,7 +11,7 @@ from ddm_playground.mesh.plot import plot_mesh, plot_submesh
 from ddm_playground.mesh.overlap import add_overlap 
 
 dim: int = 1
-nb_partition: int = 3
+nb_partition: int = 4
 gmsh_options = GmshOptions(mesh_name="mesh")
 
 with GmshContextManager(gmsh_options) as mesh_generator:
@@ -137,7 +137,7 @@ if nb_partition > 4:
     raise ValueError(f"Change markers to support more than 4 subdomains")
 
 # Plotting parameters
-markers= ["o","x","+","-"]
+markers= ["o","x","+","*"]
 cmap = cm.viridis
 norm = colors.Normalize(vmin=0, vmax=nb_iterations)
 fig2 = plt.figure()
