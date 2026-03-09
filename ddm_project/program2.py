@@ -62,20 +62,13 @@ for i in range(0,nb_partition):
     print(f"inters = {inters}")
     print(f"nodes_on_interface={nodes_on_interface}")
     args={}
-    for node in nodes_on_interface:
-        for j,n in enumerate(neigh):
-            # print(f"j,n = {j},{n}")
-            # print(inters[j])
-            for jj in range(0,len(inters[j])):
-                if node == inters[j][jj]:
-                    other_inter = intersections[n]
-                    other_neigh = neighbors[n]
-                    for jjj,nn in enumerate(other_neigh):
-                        if nn == i:
-                            other_node = other_inter[jjj][jj]
-                            args[node]=(n,other_node)
-                    break
-            # print(intersections[n])
+    for j, n in enumerate(neigh):
+        temp = np.zeros(len(inters[j]),dtype=int)
+        other_neigh = neighbors[n]
+        for jj,nn in enumerate(other_neigh):
+            if nn == i:
+                temp= intersections[n][jj]
+        args[n] = temp
         exchange_indices.append(args)
 
 print(f"boundary_nodes={boundary_nodes}")
@@ -113,18 +106,29 @@ for i in range(0,nb_partition):
 print(f"Initial interface conditions = {initial_interface_conditions}")
 
 interface_conditions = initial_interface_conditions
-for iter in range(0,5):
+for iter in range(0,10):
     # Resolve the local problems    
     for i in range(0,nb_partition):
         Linear_system = skfem.enforce(A, b,D=nodes_on_interface,x=interface_conditions[i])
         x = skfem.solve(*Linear_system)
         xs[i] = x
+  
     for i in range(0,nb_partition):
-        for p in boundary_nodes[i]:
-            n,j = exchange_indices[i][p]
-            interface_conditions[i][p] = xs[n][j]
+        interface_conditions[i] = 0*interface_conditions[i]
+        for j,n in enumerate(neighbors[i]):
+            interface_conditions[i][intersections[i][j]] += xs[n][exchange_indices[i][n]]
     # Exchange information between sub-domains
 
 # print(xs[0][exchange_indices[0]])
 
 print(f"New interface conditions = {interface_conditions}")
+
+# fig2 = plt.figure()
+# ax3 = fig2.add_subplot()
+# ax3.set_title(f"Finite element solution")
+# ax3.axis("equal")
+# for i in range(0,nb_partition):
+#     plot(Vhs[i], xs[i],ax=ax3)
+# # ax3.show()
+# plt.show()
+
