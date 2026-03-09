@@ -48,6 +48,40 @@ for i in range(0,nb_partition):
     sk_submeshes.append(skmesh)
     Vhs.append(skfem.Basis(skmesh, skfem.ElementLineP1()))
 
+# Idendify mapping from interfaces
+exchange_indices = [] # exchange_indices[i][p] gives the neighbour index and local index of same node for each boundary node
+boundary_nodes =[] # local indices of boundary nodes
+for i in range(0,nb_partition):
+    print(f"i={i}")
+    boundary_elem = submeshes[i].physical_group_elements[('interface', 0, None)]
+    nodes_on_interface = np.unique(np.concatenate(boundary_elem))
+    boundary_nodes.append(nodes_on_interface)
+    neigh = neighbors[i]
+    inters = intersections[i]
+    print(f"neigh = {neigh}")
+    print(f"inters = {inters}")
+    print(f"nodes_on_interface={nodes_on_interface}")
+    args={}
+    for node in nodes_on_interface:
+        for j,n in enumerate(neigh):
+            # print(f"j,n = {j},{n}")
+            # print(inters[j])
+            for jj in range(0,len(inters[j])):
+                if node == inters[j][jj]:
+                    other_inter = intersections[n]
+                    other_neigh = neighbors[n]
+                    for jjj,nn in enumerate(other_neigh):
+                        if nn == i:
+                            other_node = other_inter[jjj][jj]
+                            args[node]=(n,other_node)
+                    break
+            # print(intersections[n])
+        exchange_indices.append(args)
+
+print(f"boundary_nodes={boundary_nodes}")
+print(f"exchange_indices={exchange_indices}")
+# print(neighbors)
+        
 # Define bilinear and linear form
 @skfem.BilinearForm
 def a(u, v, _):
@@ -76,13 +110,21 @@ for i in range(0,nb_partition):
     initial_interface_conditions[i][nodes_on_interface] = 0.5
     xs.append([])
 
+print(f"Initial interface conditions = {initial_interface_conditions}")
 
 interface_conditions = initial_interface_conditions
-for iter in range(0,2):
+for iter in range(0,5):
     # Resolve the local problems    
     for i in range(0,nb_partition):
         Linear_system = skfem.enforce(A, b,D=nodes_on_interface,x=interface_conditions[i])
         x = skfem.solve(*Linear_system)
         xs[i] = x
-
+    for i in range(0,nb_partition):
+        for p in boundary_nodes[i]:
+            n,j = exchange_indices[i][p]
+            interface_conditions[i][p] = xs[n][j]
     # Exchange information between sub-domains
+
+# print(xs[0][exchange_indices[0]])
+
+print(f"New interface conditions = {interface_conditions}")
