@@ -2,7 +2,7 @@ import scipy.sparse as sp
 import numpy as np
 
 
-def global_matrix_vector_product (A:list[np.ndarray],x: list[np.ndarray], D:list[np.ndarray],neighbors:dict[int, list[int]], intersections: dict[int, list[list[int]]],exchange_indices:list[list[int]]) ->list[ np. ndarray]:
+def global_matrix_vector_product (A:list[np.ndarray],x: list[np.ndarray], D:list[np.ndarray],neighbors:dict[int, list[int]], intersections: dict[int, list[list[int]]],exchange_indices:list[list[int]],ovr_subdomain_to_global:dict[int, np.ndarray],dofs_global: int | None) -> np. ndarray:
     """Compute global matrix_vector_product
 
     Args:
@@ -28,5 +28,10 @@ def global_matrix_vector_product (A:list[np.ndarray],x: list[np.ndarray], D:list
         for j,n in enumerate(neighbors[i]):
             y[i][intersections[i][j]] += y_own[n][exchange_indices[i][n]]
     
-    return y
+    if dofs_global is not None:
+        y_global = np.zeros(dofs_global)
+        for i in range(0,nb_partition):
+            y_global[ovr_subdomain_to_global[i]] = y[i]
+
+    return y_global
         
