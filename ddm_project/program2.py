@@ -183,3 +183,11 @@ u_sol = 0.5*x_global*(1-x_global)
 ax2.plot(x_global[ind],u_sol[ind],linestyle="dotted",color="k")
 
 plt.show()
+
+
+print(f'Testing global_matrix_vector_product')
+
+from program5 import global_matrix_vector_product
+
+y = global_matrix_vector_product(As,xs,partition_of_unity,neighbors,intersections,exchange_indices)
+print(f"y = {y}")
