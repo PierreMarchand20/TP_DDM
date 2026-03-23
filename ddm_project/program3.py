@@ -5,11 +5,12 @@ import scipy
 def stationary_iterative_solver (
 A: scipy.sparse.linalg.LinearOperator ,
 b: np.ndarray ,
-M: scipy.sparse.linalg.LinearOperator  ,
+M_inv: scipy.sparse.linalg.LinearOperator  ,
 rtol: float = 1e-6,
 x0: None | np.ndarray = None ,
 maxiter : int = 100,
 callback=None):
+    residuals = []
     if x0 is None:
         x0 = np.zeros(len(b))
     
@@ -17,8 +18,10 @@ callback=None):
     b_norm = np.linalg.norm(b)
     for _ in range(0,maxiter):
         res = b-A@xm
-        if np.linalg.norm(res)/b_norm < rtol:
+        residual = np.linalg.norm(res)/b_norm 
+        residuals.append(residual)
+        if residual < rtol:
             break
-        xm += np.linalg.solve(M,res)
+        xm += M_inv @ res
 
-    return xm
+    return xm, residuals
