@@ -21,7 +21,6 @@ def global_matrix_vector_product (A:list[np.ndarray],x: np.ndarray, D:list[np.nd
 
     # Compute the own contributions
     for i in range(0,nb_partition):
-        print(i)
         x_p = x[ovr_subdomain_to_global[i]]
         y_global[ovr_subdomain_to_global[i]] += A[i]@(D[i]*x_p) 
         
