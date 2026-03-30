@@ -170,7 +170,7 @@ for i in range(0,nb_partition):
     Aps.append(Ap[0])
     Ap_inv = scipy.sparse.linalg.splu(Ap[0])
     Aps_inv.append(Ap_inv)
-    b_global[ovr_subdomain_to_global[i]] = partition_of_unity[i]*Ap[1]
+    b_global[ovr_subdomain_to_global[i]] += partition_of_unity[i]*Ap[1]
 
 
 A = a.assemble(Vh_global)    
@@ -197,23 +197,23 @@ from program3 import *
 
 
 # x = np.random.rand(dofs_global)
-x=np.zeros(dofs_global)
-for iter in range(0,10):
-    r = b_global - A@x
-    res = np.linalg.norm(A@x-b_global)/np.linalg.norm(b_global)
-    print(f"iter = {iter}, res = {res}")
+# x=np.zeros(dofs_global)
+# for iter in range(0,10):
+#     r = b_global - A@x
+#     res = np.linalg.norm(A@x-b_global)/np.linalg.norm(b_global)
+#     print(f"iter = {iter}, res = {res}")
     
-    dx = M_inv @ r
-    x+= dx
-    print(np.linalg.norm(dx))
+#     dx = M_inv @ r
+#     x+= dx
+#     print(np.linalg.norm(dx))
 
 
 
-# x,res = stationary_iterative_solver(A,b_global,M_inv)
-# x,info = scipy.sparse.linalg.gmres(A,b_global)
-# print(f"info={info}")
-# res = np.linalg.norm(A@x - b_global)/np.linalg.norm(b_global)
-# print(f"res = {res}")
+# x,res = stationary_iterative_solver(A,b_global_mesh,M_inv,maxiter=10)
+x,info = scipy.sparse.linalg.gmres(A,b_global_mesh,M=M_inv)
+print(f"info={info}")
+res = np.linalg.norm(A@x - b_global_mesh)/np.linalg.norm(b_global_mesh)
+print(f"res = {res}")
 # plot_res(res,"RAS.png",title="RAS")
 # plot_res(res,"ASM.png",title="ASM")
 
