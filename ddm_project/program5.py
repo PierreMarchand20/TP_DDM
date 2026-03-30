@@ -26,7 +26,7 @@ def global_matrix_vector_product (A:list[np.ndarray],x: np.ndarray, D:list[np.nd
     return y_global
         
 
-def apply_ASM_precondition(As: list[scipy.sparse.linalg.SuperLU ],x: np.ndarray,ovr_subdomain_to_global:dict[int, np.ndarray],nb_partition : int,boundary_nodes: list[np.ndarray]) -> np.ndarray:
+def apply_ASM_precondition(Aps_inv: list[scipy.sparse.linalg.SuperLU ],x: np.ndarray,ovr_subdomain_to_global:dict[int, np.ndarray],nb_partition : int,boundary_nodes: list[np.ndarray]) -> np.ndarray:
     """Implements the ASM preconditioner
 
     Args:
@@ -40,7 +40,7 @@ def apply_ASM_precondition(As: list[scipy.sparse.linalg.SuperLU ],x: np.ndarray,
     for i in range(0,nb_partition):
         x_p = x[ovr_subdomain_to_global[i]]
         x_p[boundary_nodes[i]] = 0
-        y_p = As[i].solve(x_p)
+        y_p = Aps_inv[i].solve(x_p)
         y[ovr_subdomain_to_global[i]] += y_p
 
     return y
