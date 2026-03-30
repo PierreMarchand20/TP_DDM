@@ -46,5 +46,28 @@ def apply_ASM_precondition(Aps_inv: list[scipy.sparse.linalg.SuperLU ],x: np.nda
     return y
     
 
+def apply_RAS_precondition(Aps_inv: list[scipy.sparse.linalg.SuperLU ],x: np.ndarray,ovr_subdomain_to_global:dict[int, np.ndarray],nb_partition : int,ext_boundary_nodes: list[np.ndarray],D: list[np.ndarray]) -> np.ndarray:
+    """Implements the ASM preconditioner
+
+    Args:
+        input (np.ndarray): _description_
+
+    Returns:
+        np.ndarray: _description_
+    """
+    y = np.zeros_like(x)
+    # y= x
+    for i in range(0,nb_partition):
+        x_p = x[ovr_subdomain_to_global[i]]
+        x_p[ext_boundary_nodes[i]] = 0
+        print(f"x_p = {x_p}")
+        y_p = Aps_inv[i].solve(x_p)
+        y[ovr_subdomain_to_global[i]] += D[i]*y_p
+
+    return y
+
+
+
+
 if __name__ == "__main__":
     print("Running tests")
