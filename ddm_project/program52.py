@@ -58,16 +58,12 @@ for i in range(0,nb_partition):
 
 nodes = mesh_global.nodes.T
 elements =mesh_global.elements.T
-
-
 if dim == 1:
-    skmesh_global =skfem.MeshLine(nodes[0,:],elements)
-    Vh_global=skfem.Basis(skmesh, skfem.ElementLineP1())
+    skmesh_global =skfem.MeshLine(nodes[0:2,:],elements)
+    Vh_global=skfem.Basis(skmesh_global, skfem.ElementLineP1())
 elif dim == 2:
     skmesh_global =skfem.MeshTri(nodes[0:2,:],elements)
-    Vh_global=skfem.Basis(skmesh, skfem.ElementTriP1())
-
-dofs_global = nodes.shape[1]
+    Vh_global=skfem.Basis(skmesh_global, skfem.ElementTriP1())
 
 # Idendify mapping from interfaces
 exchange_indices = [] # exchange_indices[i][n] gives the indices of the overlap of submesh i with submesh n in the local numbering of submesh n. It corresponds with the overlap in  intersections[i] corresponding to neighbour n in neighbours[i]
