@@ -15,8 +15,6 @@ def global_matrix_vector_product (A:list[np.ndarray],x: np.ndarray, D:list[np.nd
 
     """
     nb_partition = len(A)
-    y_own = []
-    y = []
     y_global = np.zeros_like(x)
 
     # Compute the own contributions
