@@ -161,12 +161,8 @@ for i in range(0,nb_partition):
     A = a.assemble(Vhs[i])    
     b = l.assemble(Vhs[i])
     local_ext_boundary_nodes = ext_boundary_nodes[i]
-    print(f"local_ext_boundary_nodes = {local_ext_boundary_nodes}")
     global_index =ovr_subdomain_to_global[i][local_ext_boundary_nodes]
-    print(f"global index = {global_index}")
-    print(f"node localtion = {mesh_global.nodes[global_index,:]}")
     Ap = skfem.enforce(A, b,D=local_ext_boundary_nodes)
-    # print(f"Ap type ={type(Ap)}, len(Ap)={len(Ap)},\nAp[0]={Ap[0]},\nAp[1]={Ap[1]}")
     Aps.append(Ap[0])
     Ap_inv = scipy.sparse.linalg.splu(Ap[0])
     Aps_inv.append(Ap_inv)
@@ -190,44 +186,23 @@ def A_apply_RAS_precondition(x: np.ndarray) -> np.ndarray:
 
 A = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_global_matrix_vector_product,dtype="float64")
 
-M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_apply_RAS_precondition,dtype="float64")
+M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),
+matvec=A_apply_RAS_precondition,dtype="float64")
 
-# M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_apply_ASM_precondition,dtype="float64")
-from program3 import *
+x,res = stationary_iterative_solver(A,b_global_mesh,M_inv,maxiter=10)
+print(f"res stationary solver = {res}")
+plot_res(res,"RAS.png",title="RAS")
 
-
-# x = np.random.rand(dofs_global)
-# x=np.zeros(dofs_global)
-# for iter in range(0,10):
-#     r = b_global - A@x
-#     res = np.linalg.norm(A@x-b_global)/np.linalg.norm(b_global)
-#     print(f"iter = {iter}, res = {res}")
-    
-#     dx = M_inv @ r
-#     x+= dx
-#     print(np.linalg.norm(dx))
-
-
-
-# x,res = stationary_iterative_solver(A,b_global_mesh,M_inv,maxiter=10)
-x,info = scipy.sparse.linalg.gmres(A,b_global_mesh,M=M_inv)
-print(f"info={info}")
+x_gmres,info = scipy.sparse.linalg.gmres(A,b_global_mesh)
+print(f"gmres info={info}")
 res = np.linalg.norm(A@x - b_global_mesh)/np.linalg.norm(b_global_mesh)
-print(f"res = {res}")
-# plot_res(res,"RAS.png",title="RAS")
+print(f"res gmres = {res}")
 # plot_res(res,"ASM.png",title="ASM")
 
 
+dx = x - x_gmres
+diff = np.linalg.norm(dx)/np.linalg.norm(x_gmres)
+print(f"Realtive difference = {diff}")
 
 
-
-# x = np.random.rand(dofs_global)
-# print(f"x dim = {x.shape}")
-# y = A@x
-# y_global = A_global_mesh@x
-# print(f"difference = {np.linalg.norm(y-y_global)/np.linalg.norm(y_global)}")
-
-
-
-
-# print(f"A_global_mesh = {A_global_mesh}")
+# M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_apply_ASM_precondition,dtype="float64")
