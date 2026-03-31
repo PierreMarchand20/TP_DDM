@@ -60,8 +60,10 @@ def apply_RAS_precondition(Aps_inv: list[scipy.sparse.linalg.SuperLU ],x: np.nda
     for i in range(0,nb_partition):
         x_p = x[ovr_subdomain_to_global[i]]
         x_p[ext_boundary_nodes[i]] = 0
-        print(f"x_p = {x_p}")
-        y_p = Aps_inv[i].solve(x_p)
+        # print(f"x[{i}] = {x_p}")
+        # y_p = Aps_inv[i].solve(x_p)
+        y_p = Aps_inv[i].solve(D[i]*x_p)
+        # print(f"D[{i}] = {D[i]}")
         y[ovr_subdomain_to_global[i]] += D[i]*y_p
 
     return y
@@ -71,3 +73,6 @@ def apply_RAS_precondition(Aps_inv: list[scipy.sparse.linalg.SuperLU ],x: np.nda
 
 if __name__ == "__main__":
     print("Running tests")
+
+    A1 = np.ndarray([[0,0,1],[1 , 0 ,0],[0,1,0]])
+    A2 = np.ndarray([[0,0,-1],[-1 , 0 ,0],[0,-1,0]])
