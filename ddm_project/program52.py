@@ -140,10 +140,11 @@ print(f'boundary_nodes_global={boundary_nodes_global}')
 def a(u, v, _):
     return dot(grad(u), grad(v))
 
+f = lambda x: 1.0
+
 @skfem.LinearForm
-def l(v, _):
-    f = 1
-    return f * v
+def l(v, w):
+    return f(w.x[0]) * v
 
 # Assemble local problem
 dofs_global = Vh_global.N
@@ -172,6 +173,9 @@ for i in range(0,nb_partition):
 A = a.assemble(Vh_global)    
 b = l.assemble(Vh_global)
 A_global_mesh,b_global_mesh = skfem.enforce(A,b,D=np.array(boundary_nodes_global))
+x_global = skfem.solve(A_global_mesh,b_global_mesh)
+
+Id = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),dtype="float64",matvec=lambda x: x)
 # print(f"A_global={A_global.shape}")
 
 def A_global_matrix_vector_product(x: np.ndarray) -> np.ndarray:
@@ -189,20 +193,32 @@ A = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_
 M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),
 matvec=A_apply_RAS_precondition,dtype="float64")
 
-x,res = stationary_iterative_solver(A,b_global_mesh,M_inv,maxiter=10)
+x,res = stationary_iterative_solver(A,b_global,M_inv,maxiter=500)
 print(f"res stationary solver = {res}")
 plot_res(res,"RAS.png",title="RAS")
 
-x_gmres,info = scipy.sparse.linalg.gmres(A,b_global_mesh)
-print(f"gmres info={info}")
-res = np.linalg.norm(A@x - b_global_mesh)/np.linalg.norm(b_global_mesh)
-print(f"res gmres = {res}")
-# plot_res(res,"ASM.png",title="ASM")
 
 
-dx = x - x_gmres
-diff = np.linalg.norm(dx)/np.linalg.norm(x_gmres)
+dx = x_global - x
+diff = np.linalg.norm(dx)/np.linalg.norm(x_global)
 print(f"Realtive difference = {diff}")
+
+
+# Plotting parameters
+fig = plt.figure()
+ax1 = fig.add_subplot(221)
+ax1.set_title(f"Finite element solution final")
+plot(Vh_global,x,ax=ax1)
+ax2 = fig.add_subplot(222)
+ax2.set_title(f"f")
+f_plot = Vh_global.project(f)
+plot(Vh_global,f_plot,ax=ax2)
+ax3 = fig.add_subplot(223)
+ax3.set_title(f"x_global")
+plot(Vh_global,x_global,ax=ax3)
+
+
+plt.show()
 
 
 # M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_apply_ASM_precondition,dtype="float64")
