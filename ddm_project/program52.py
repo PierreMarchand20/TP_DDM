@@ -140,11 +140,15 @@ print(f'boundary_nodes_global={boundary_nodes_global}')
 def a(u, v, _):
     return dot(grad(u), grad(v))
 
-f = lambda x: 1.0
+f_source = lambda x: x**2 - x
 
 @skfem.LinearForm
 def l(v, w):
-    return f(w.x[0]) * v
+    x= w.x[0,:,:]  # global coordinates
+    f = f_source(x)
+    if (x.shape != v.shape) or (x.shape != f.shape):
+        raise ValueError("Problem in bilinear form")
+    return f * v
 
 # Assemble local problem
 dofs_global = Vh_global.N
@@ -157,6 +161,8 @@ initial_interface_conditions = []
 b_global = np.zeros(dofs_global)
 
 
+f_plot = Vh_global.project(f_source)
+# ext_boundary_nodes =boundary_nodes
 
 for i in range(0,nb_partition):
     A = a.assemble(Vhs[i])    
@@ -207,12 +213,14 @@ print(f"Realtive difference = {diff}")
 # Plotting parameters
 fig = plt.figure()
 ax1 = fig.add_subplot(221)
-ax1.set_title(f"Finite element solution final")
+ax1.set_title(f"Domain decomposition solution")
 plot(Vh_global,x,ax=ax1)
 ax2 = fig.add_subplot(222)
 ax2.set_title(f"f")
-f_plot = Vh_global.project(f)
+# ax2.axis("equal")
+
 plot(Vh_global,f_plot,ax=ax2)
+# print(f_plot)
 ax3 = fig.add_subplot(223)
 ax3.set_title(f"x_global")
 plot(Vh_global,x_global,ax=ax3)
