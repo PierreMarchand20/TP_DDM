@@ -13,6 +13,7 @@ from program5 import *
 import scipy
 from tools import *
 from program3 import *
+from copy import deepcopy
 dim: int = 1
 nb_partition: int = 2
 gmsh_options = GmshOptions(mesh_name="mesh")
@@ -140,14 +141,12 @@ print(f'boundary_nodes_global={boundary_nodes_global}')
 def a(u, v, _):
     return dot(grad(u), grad(v))
 
-f_source = lambda x: x**2 - x
+f_source = lambda x: x
 
 @skfem.LinearForm
 def l(v, w):
     x= w.x[0,:,:]  # global coordinates
     f = f_source(x)
-    if (x.shape != v.shape) or (x.shape != f.shape):
-        raise ValueError("Problem in bilinear form")
     return f * v
 
 # Assemble local problem
@@ -167,10 +166,9 @@ f_plot = Vh_global.project(f_source)
 for i in range(0,nb_partition):
     A = a.assemble(Vhs[i])    
     b = l.assemble(Vhs[i])
-    local_ext_boundary_nodes = ext_boundary_nodes[i]
-    global_index =ovr_subdomain_to_global[i][local_ext_boundary_nodes]
+    local_ext_boundary_nodes = boundary_nodes[i]
     Ap = skfem.enforce(A, b,D=local_ext_boundary_nodes)
-    Aps.append(Ap[0])
+    Aps.append(deepcopy(Ap[0]))
     Ap_inv = scipy.sparse.linalg.splu(Ap[0])
     Aps_inv.append(Ap_inv)
     b_global[ovr_subdomain_to_global[i]] += partition_of_unity[i]*Ap[1]
@@ -188,10 +186,10 @@ def A_global_matrix_vector_product(x: np.ndarray) -> np.ndarray:
     return global_matrix_vector_product(Aps,x,partition_of_unity,ovr_subdomain_to_global)
 
 def A_apply_ASM_precondition(x: np.ndarray) -> np.ndarray:
-    return apply_ASM_precondition(Aps_inv,x,ovr_subdomain_to_global,nb_partition,ext_boundary_nodes)
+    return apply_ASM_precondition(Aps_inv,x,ovr_subdomain_to_global,nb_partition,boundary_nodes)
 
 def A_apply_RAS_precondition(x: np.ndarray) -> np.ndarray:
-    return apply_RAS_precondition(Aps_inv,x,ovr_subdomain_to_global,nb_partition,ext_boundary_nodes,partition_of_unity)
+    return apply_RAS_precondition(Aps_inv,x,ovr_subdomain_to_global,nb_partition,boundary_nodes,partition_of_unity)
 
 
 A = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_global_matrix_vector_product,dtype="float64")
@@ -199,9 +197,10 @@ A = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_
 M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),
 matvec=A_apply_RAS_precondition,dtype="float64")
 
-x,res = stationary_iterative_solver(A,b_global,M_inv,maxiter=500)
-print(f"res stationary solver = {res}")
-plot_res(res,"RAS.png",title="RAS")
+x,info = scipy.sparse.linalg.gmres(A,b_global)
+# x,res = stationary_iterative_solver(A,b_global,M_inv,maxiter=500)
+# print(f"res stationary solver = {res}")
+# plot_res(res,"RAS.png",title="RAS")
 
 
 
@@ -228,5 +227,9 @@ plot(Vh_global,x_global,ax=ax3)
 
 plt.show()
 
+
+y = A_global_mesh@x
+y_dist = A@x
+print(f"dist = {np.linalg.norm(y-y_dist)/np.linalg.norm(y)}")
 
 # M_inv = scipy.sparse.linalg.LinearOperator(shape=(dofs_global,dofs_global),matvec=A_apply_ASM_precondition,dtype="float64")
